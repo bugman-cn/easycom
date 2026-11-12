@@ -44,14 +44,10 @@ if (Test-Path -LiteralPath $outputPath) {
     Remove-Item -LiteralPath $outputPath -Recurse -Force
     Write-Host "[INFO] Removed previous release output: $outputPath"
 }
-if (Test-Path -LiteralPath $zipPath) {
-    Remove-Item -LiteralPath $zipPath -Force
-    Write-Host "[INFO] Removed previous release ZIP: $zipPath"
-}
 
 $buildArgs = @(
     ".\scripts\build_exe.py",
-    "--name", $name
+    "--zip", "--name", $name
 )
 if ($oneFile) { $buildArgs += "--onefile" }
 
@@ -61,5 +57,5 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 if (-not (Test-Path -LiteralPath $outputPath)) {
     throw "Expected release output was not created: $outputPath"
 }
-Compress-Archive -LiteralPath $outputPath -DestinationPath $zipPath -Force
+if (-not (Test-Path -LiteralPath $zipPath -PathType Leaf)) { throw "Release ZIP missing: $zipPath" }
 Write-Host "[OK] ZIP: $zipPath"

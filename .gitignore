@@ -5,3 +5,4 @@ auto-gen/
 build/
 dist/
 *.spec
+!scripts/easycom.spec

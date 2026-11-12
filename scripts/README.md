@@ -38,6 +38,10 @@ python.exe scripts\build_exe.py --name "easycom-custom"
 
 或在资源管理器中双击 `scripts\release.bat`。
 
+发行构建已用 Windows x64、Python 3.12.6、PySide6 / Shiboken6 6.11.2、pySerial 3.5 和 PyInstaller 6.22.3 验证打包。复现时可在虚拟环境执行 `python.exe -m pip install PySide6==6.11.2 pyserial==3.5 pyinstaller==6.22.3`。Windows 平台插件负责本机输入。打包钩子排除 Qt Virtual Keyboard 和 PDF 图像插件。`scripts/easycom.spec` 在生成目录版和单文件版前，从依赖清单移除 Windows API 集、UCRT 和 VC++ v14 运行库 DLL。发布页应附上[微软 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)的下载链接。
+
+发布到 GitHub Releases 时上传完整 ZIP，并在 Release 正文放上该标签的 `THIRD_PARTY_NOTICES.md` 链接，方便从下载页取得对应源码。维护者需保持对应源码可下载，必要时将相同版本源码包一并上传。升级 Qt 前应更新 `licenses/Qt-third-party.txt` 和第三方声明中的版本及源码链接。
+
 ## `clean.py`
 
 删除项目内的 `__pycache__` 目录和 `auto-gen/` 运行时数据。`auto-gen/` 包含用户配置、历史记录、快捷命令和日志，删除后不可恢复。

@@ -4,7 +4,9 @@ easycom 是一款 Windows 桌面串口调试工具，基于 PySide6 和 pyserial
 
 ## 快速开始
 
-在 Windows 上安装 Python，并确保能在 PowerShell 中运行 `python.exe`。本项目已在 Python 3.12.6 环境下运行。
+发行包适用于 Windows 10（1809 及以上）和 Windows 11 x64。解压完整 ZIP 后运行 EXE。若提示缺少 `MSVCP140.dll` 或 `VCRUNTIME140.dll`，或已有运行库版本过旧，请安装或更新微软的 x64 运行库，再启动 easycom。[微软官方 Visual C++ v14 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)
+
+从源码运行时，先在 Windows 上安装 Python，并确保能在 PowerShell 中运行 `python.exe`。本项目已在 Python 3.12.6 环境下运行。
 
 在项目根目录双击 `run.bat`，也可以从 PowerShell 启动。
 
@@ -41,13 +43,13 @@ easycom 是一款 Windows 桌面串口调试工具，基于 PySide6 和 pyserial
 .\scripts\release.ps1
 ```
 
-在打包模式提示处直接按回车，生成目录版。输入 `y` 可生成单文件版。生成的 ZIP 位于 `dist/`，V1.0 对应 `dist/easycom-v1.0.zip`。
+在打包模式提示处直接按回车，生成目录版。将 ZIP 解压到运行目录，EXE 和 `_internal/` 会直接出现在该目录下。输入 `y` 可生成单文件版。生成的 ZIP 位于 `dist/`，V1.0 对应 `dist/easycom-v1.0.zip`。
 
 项目结构和构建选项分别见[框架说明](doc/框架说明.md)和[脚本说明](scripts/README.md)。
 
 ## 许可证
 
-easycom 的原创代码采用 [MIT 许可证](LICENSE)。第三方依赖、字体和图标按各自的许可证分发。
+easycom 的原创代码采用 [MIT 许可证](LICENSE)。第三方依赖、字体和图标按各自的许可证分发。两个模式的 ZIP 都在 EXE 旁提供 `LICENSE`、`THIRD_PARTY_NOTICES.md` 和 `licenses/`。对应的 Qt 源码下载地址及替换方法见[第三方声明](THIRD_PARTY_NOTICES.md)。
 
 ## 第三方素材
 
