@@ -45,6 +45,10 @@ easycom 是一款 Windows 桌面串口调试工具，基于 PySide6 和 pyserial
 
 项目结构和构建选项分别见[框架说明](doc/框架说明.md)和[脚本说明](scripts/README.md)。
 
+## 许可证
+
+easycom 的原创代码采用 [MIT 许可证](LICENSE)。第三方依赖、字体和图标按各自的许可证分发。
+
 ## 第三方素材
 
 界面图标使用 VS Code Codicons，`0x` 图标使用 Hack 字体绘制。项目随附 Hack 和文渊宋体。各素材的作者、许可和修改说明见 [Codicons 署名与许可](icon/LICENSE-Codicons.txt)、[Hack 字体许可](resources/fonts/LICENSE-Hack.md)和[文渊字体许可](resources/fonts/LICENSE-WenYuanFonts.md)。

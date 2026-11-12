@@ -57,7 +57,8 @@ def build(onefile: bool, console: bool, product_name: str, file_description: str
         print(f"[ERROR] 找不到入口文件: {entry}")
         return 1
 
-    add_data = (f"{resources}{os.pathsep}resources", f"{root / 'icon'}{os.pathsep}icon")
+    license_data = f"{root / 'LICENSE'}{os.pathsep}."
+    add_data = (license_data, f"{resources}{os.pathsep}resources", f"{root / 'icon'}{os.pathsep}icon")
     icon_file = root / "icon" / "icon.ico"
     version_file = _write_version_file(root, name, product_name, file_description)
     cmd = [
