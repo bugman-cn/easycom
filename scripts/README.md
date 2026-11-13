@@ -30,13 +30,13 @@ python.exe scripts\build_exe.py --name "easycom-custom"
 
 ## `release.bat` / `release.ps1`
 
-从 `config/version.py` 读取 `APP_VERSION`。打包前会询问是否使用 `onefile`，输入 `y`、`yes` 或 `1` 使用单文件模式，直接回车或其他输入默认使用 `onedir`。发布产物以 `easycom-v<version>` 命名，包含对应的 EXE 和 ZIP。发布新版本时只需修改 `config/version.py` 中的数字版本号，支持 `1.0` 和 `1.0.1` 两种格式。
+从 `config/version.py` 读取 `APP_VERSION`。打包前会询问是否使用 `onefile`，输入 `y`、`yes` 或 `1` 使用单文件模式，直接回车或其他输入默认使用 `onedir`。x64 目录版命名为 `easycom-v<version>-win64.zip`，可选的单文件版命名为 `easycom-v<version>-win64-onefile.zip`，内部程序名固定为 `easycom.exe`。目录版还包含完整的 `_internal/`。发布新版本时只需修改 `config/version.py` 中的数字版本号，支持 `1.0` 和 `1.0.1` 两种格式。
 
 ```powershell
 .\scripts\release.ps1
 ```
 
-或在资源管理器中双击 `scripts\release.bat`。
+或在资源管理器中双击 `scripts\release.bat`。需要非交互打包时，运行 `python.exe scripts\build_exe.py --release`，单文件版再加 `--onefile`。两种模式的构建目录独立，成品 ZIP 位于 `dist/`。更新源默认为 `config/version.py` 中的 `bugman-cn/easycom`，为其他仓库打包时可使用 `--update-repo OWNER/REPO`。构建脚本只生成本地文件。
 
 发行构建已用 Windows x64、Python 3.12.6、PySide6 / Shiboken6 6.11.2、pySerial 3.5 和 PyInstaller 6.22.3 验证打包。复现时可在虚拟环境执行 `python.exe -m pip install PySide6==6.11.2 pyserial==3.5 pyinstaller==6.22.3`。Windows 平台插件负责本机输入。打包钩子排除 Qt Virtual Keyboard 和 PDF 图像插件。`scripts/easycom.spec` 在生成目录版和单文件版前，从依赖清单移除 Windows API 集、UCRT 和 VC++ v14 运行库 DLL。发布页应附上[微软 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)的下载链接。
 

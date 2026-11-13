@@ -171,6 +171,7 @@ class MainWindow(QMainWindow):
         # 核心组件
         self.worker = SerialWorker(self)
         self._closing = False
+        self._update_dialog = None
         self._pending_reconfigure = None
         self._lifecycle_timer = QTimer(self)
         self._lifecycle_timer.setInterval(100)
@@ -786,6 +787,7 @@ class MainWindow(QMainWindow):
         about_menu = QMenu(self)
         about_action = about_menu.addAction("关于")
         about_action.triggered.connect(self._on_about)
+        about_menu.addAction("检查更新…").triggered.connect(self._on_check_update)
         self.title_bar.add_menu_button("关于", about_menu)
 
     def _on_menu_theme_changed(self, mode: str) -> None:
@@ -940,6 +942,17 @@ class MainWindow(QMainWindow):
                 self.receive_panel.ext_cmd_btn.setChecked(True)
         if _saved_sizes and len(_saved_sizes) >= 2:
             self._splitter.setSizes(_saved_sizes)
+
+    def _on_check_update(self) -> None:
+        if self._update_dialog is None:
+            from gui.update_dialog import UpdateDialog
+            self._update_dialog = UpdateDialog(self)
+        self._update_dialog.open_check()
+
+    def update_blocked(self) -> bool:
+        return (self._closing or self.worker.is_open() or self.worker.is_busy()
+                or self.send_panel.auto_chk.isChecked() or self._auto_reconnect_timer.isActive()
+                or self._reconfig_in_progress or self._pending_reconfigure is not None)
 
     def _on_about(self) -> None:
         cfg_file = (get_config_dir() / "app.json").resolve()
@@ -1288,6 +1301,12 @@ class MainWindow(QMainWindow):
         except Exception as e:
             diagnostics.event(logging.ERROR, "关闭清理异常", exc_info=True)
             QMessageBox.warning(self, "关闭异常", str(e))
+            if self._update_dialog and self._update_dialog.installing:
+                self._update_dialog.installing = False
+                self._closing = False
+                self._rx_drain_timer.start()
+                event.ignore()
+                return
         if self._reset_defaults:
             if not self._restart_after_reset:
                 super().closeEvent(event)
@@ -1310,6 +1329,17 @@ class MainWindow(QMainWindow):
             return
         self._save_splitter_ratio()
         self._save_window_state()
+        if self._update_dialog:
+            if self._update_dialog.installing:
+                try:
+                    self._update_dialog.handoff()
+                except (OSError, ValueError) as exc:
+                    self._update_dialog.installing = False
+                    self._closing = False
+                    self._rx_drain_timer.start()
+                    QMessageBox.warning(self, "无法启动更新", str(exc))
+                    event.ignore()
+                    return
         super().closeEvent(event)
 
     def _save_window_state(self) -> None:

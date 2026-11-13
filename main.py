@@ -10,7 +10,7 @@ from PySide6.QtCore import QTimer, QtMsgType, qInstallMessageHandler
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from config.version import APP_NAME
+from config.version import APP_NAME, APP_VERSION
 from utils import diagnostics
 import ctypes
 
@@ -112,13 +112,25 @@ def _run_app() -> int:
     QTimer.singleShot(0, win.restore_ext_cmd_state)
     if config.window_maximized:
         win.set_window_maximized(True)
+    if getattr(sys, "frozen", False):
+        from core.update_install import confirm_start
+        QTimer.singleShot(0, lambda: confirm_start(Path(sys.executable).resolve().parent, APP_VERSION))
     return app.exec()
 
 
 def main() -> int:
-    from config.version import APP_VERSION
     from PySide6 import __version__ as qt_version
     root = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
+    if getattr(sys, "frozen", False):
+        from core.update_install import startup_allowed
+        try:
+            allowed = startup_allowed(root, APP_VERSION)
+        except (OSError, KeyError, ValueError):
+            allowed = False
+        if not allowed:
+            ctypes.windll.user32.MessageBoxW(None, "有更新尚未完成。如已中断，请关闭其他实例后运行 "
+                                             ".easycom-update/recover.exe。", APP_NAME, 0x40)
+            return 1
     diagnostics.initialize(root / "auto-gen" / "diagnostics")
     previous_handler = qInstallMessageHandler(_message_handler)
     diagnostics.event(logging.INFO, f"启动 V{APP_VERSION}; Python={sys.version.split()[0]}; PySide6={qt_version}; frozen={getattr(sys, 'frozen', False)}")

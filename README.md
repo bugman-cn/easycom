@@ -35,6 +35,12 @@ easycom 是一款 Windows 桌面串口调试工具，基于 PySide6 和 pyserial
 
 源码运行时，配置、历史记录和扩展命令保存在项目根目录的 `auto-gen/` 中。运行打包版时，该目录位于 EXE 旁。串口日志默认写入 `auto-gen/uart-log/`，可在设置中更改。使用 `clean.bat` 会删除整个 `auto-gen/`，请先备份需要保留的命令和日志。
 
+## 在线升级
+
+在 **关于 → 检查更新** 查看 GitHub 最新正式版和发布说明。较长的发布说明可在窗口内滚动阅读。通常从公开 Release 页面读取信息，手动重新检查可立即刷新。打包版可以点击 **下载更新**，校验通过后关闭串口、停止定时发送，再点击 **更新并重启**。请先将整个发行包解压到自己有写入权限的目录，并保留程序名 `easycom.exe`。升级会保留同级的 `auto-gen/`、自定义日志和快捷方式。
+
+如果升级中断，关闭所有 easycom 窗口，双击安装目录下的 `.easycom-update/recover.exe` 恢复，再打开程序。详情记录在同目录的 `update.log`。源码运行时可查询版本，使用 Git 获取代码更新。此前分发的旧版需要手动换到含更新入口的版本一次。
+
 ## 打包 Windows 发行版
 
 完成首次启动后，在项目根目录运行发布脚本。
@@ -43,7 +49,9 @@ easycom 是一款 Windows 桌面串口调试工具，基于 PySide6 和 pyserial
 .\scripts\release.ps1
 ```
 
-在打包模式提示处直接按回车，生成目录版。将 ZIP 解压到运行目录，EXE 和 `_internal/` 会直接出现在该目录下。输入 `y` 可生成单文件版。生成的 ZIP 位于 `dist/`，V1.0 对应 `dist/easycom-v1.0.zip`。
+在 x64 环境下，直接按回车即可生成目录版 `dist/easycom-v1.0-win64.zip`。需要单文件版时输入 `y`，生成的 ZIP 带有 `-onefile` 后缀。
+
+发布时在 GitHub 创建与 `config/version.py` 中版本对应的正式 Release，例如 `v1.0`。将生成的目录版 ZIP 按原名上传为附件。下次发布 V1.1 时，已安装的 V1.0 即可在应用内检查并升级。
 
 项目结构和构建选项分别见[框架说明](doc/框架说明.md)和[脚本说明](scripts/README.md)。
 

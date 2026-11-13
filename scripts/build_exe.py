@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -13,12 +14,13 @@ from textwrap import dedent
 from zipfile import ZIP_DEFLATED, ZipFile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from config.version import APP_NAME, APP_VERSION
+from config.version import APP_NAME, APP_VERSION, UPDATE_REPO
+from core.updates import architecture, release_asset_name, validate_repo, version_parts
 
 
 def _write_version_file(root: Path, name: str, product_name: str, file_description: str) -> Path:
     """生成 PyInstaller 版本信息文件，用于写入 EXE 元数据。"""
-    version_file = root / "build" / "version_info.txt"
+    version_file = root / "version_info.txt"
     version_file.parent.mkdir(parents=True, exist_ok=True)
     parts = APP_VERSION.split(".")
     if len(parts) == 2:
@@ -74,19 +76,16 @@ def _license_files(root: Path) -> list[tuple[Path, Path]]:
     return files
 
 
-def _release_zip(exe: Path, onefile: bool, notices: list[tuple[Path, Path]]) -> Path:
-    dist = exe.parent if onefile else exe.parent.parent
-    target = dist / (exe.stem + ".zip")
-    with NamedTemporaryFile(dir=dist, suffix=".tmp", delete=False) as temp:
+def _release_zip(target: Path, exe: Path, onefile: bool, notices: list[tuple[Path, Path]]) -> Path:
+    with NamedTemporaryFile(dir=target.parent, suffix=".tmp", delete=False) as temp:
         output = Path(temp.name)
     try:
         with ZipFile(output, "w", ZIP_DEFLATED) as archive:
-            if onefile:
-                archive.write(exe, exe.name)
-                for source, relative in notices:
-                    archive.write(source, relative)
-            else:
-                for source in sorted(exe.parent.rglob("*")):
+            archive.write(exe, exe.name)
+            for source, relative in notices:
+                archive.write(source, relative)
+            if not onefile:
+                for source in sorted((exe.parent / "_internal").rglob("*")):
                     if source.is_file():
                         archive.write(source, source.relative_to(exe.parent))
         output.replace(target)
@@ -96,23 +95,42 @@ def _release_zip(exe: Path, onefile: bool, notices: list[tuple[Path, Path]]) -> 
 
 
 def build(onefile: bool, console: bool, product_name: str, file_description: str, name: str,
-          release_zip: bool = False) -> int:
+          release_zip: bool = False, *, release: bool = False, repo: str = UPDATE_REPO) -> int:
     root = Path(__file__).resolve().parent.parent
     entry = root / "main.py"
     if not entry.exists():
         print(f"[ERROR] 找不到入口文件: {entry}")
         return 1
 
-    if release_zip:
+    if release_zip or release:
         from PySide6.QtCore import qVersion
         if qVersion() != "6.11.2" or distribution("PySide6").version != "6.11.2":
             print("[ERROR] 发行声明对应 Qt / PySide6 6.11.2，请使用该版本或先更新许可及源码链接。")
             return 1
     notices = _license_files(root)
-    _write_version_file(root, name, product_name, file_description)
+    mode = "onefile" if onefile else "onedir"
+    arch = architecture()
+    validate_repo(repo)
+    if release and name != APP_NAME:
+        raise ValueError("发布版的程序名必须为 easycom。")
+    if max(version_parts(APP_VERSION)) > 65535:
+        raise ValueError("Windows 版本号的各段须小于 65536。")
+    build_dir = root / "build" / mode
+    dist = root / "dist"
+    dist.mkdir(exist_ok=True)
+    out = build_dir / "release" if release else dist
+    _write_version_file(build_dir, name, product_name, file_description)
+    (build_dir / "update-build.json").write_text(
+        json.dumps({"repo": repo, "arch": arch, "mode": mode}), encoding="utf-8",
+    )
+    pyinstaller = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean"]
+    recipe = [str(root / "scripts" / "easycom.spec"), "--", "--build-dir", str(build_dir)]
+    helper_cmd = [
+        *pyinstaller, "--workpath", str(build_dir / "helper-work"), "--distpath", str(build_dir / "helper"),
+        *recipe, "--name", "easycom-updater", "--helper", "--onefile",
+    ]
     cmd = [
-        sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
-        str(root / "scripts" / "easycom.spec"), "--", "--name", name,
+        *pyinstaller, "--workpath", str(build_dir / "work"), "--distpath", str(out), *recipe, "--name", name,
     ]
     if onefile:
         cmd.append("--onefile")
@@ -129,6 +147,7 @@ def build(onefile: bool, console: bool, product_name: str, file_description: str
             (str(Path(sys.executable).parent), sys.base_prefix, str(windows_dir / "System32"), str(windows_dir))
         )
     try:
+        subprocess.run(helper_cmd, cwd=root, check=True, env=env)
         subprocess.run(cmd, cwd=root, check=True, env=env)
     except FileNotFoundError:
         print("[ERROR] 未找到 Python 或 PyInstaller。请先安装: pip install pyinstaller")
@@ -137,14 +156,15 @@ def build(onefile: bool, console: bool, product_name: str, file_description: str
         print(f"[ERROR] 打包失败，退出码: {exc.returncode}")
         return exc.returncode
 
-    exe_path = root / "dist" / (f"{name}.exe" if onefile else f"{name}/{name}.exe")
+    exe_path = out / (f"{name}.exe" if onefile else f"{name}/{name}.exe")
     if not onefile:
         for source, relative in notices:
             destination = exe_path.parent / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
-    if release_zip:
-        print(f"[OK] ZIP: {_release_zip(exe_path, onefile, notices)}")
+    if release_zip or release:
+        filename = release_asset_name(APP_VERSION, arch, mode) if release else name + ".zip"
+        print(f"[OK] ZIP: {_release_zip(dist / filename, exe_path, onefile, notices)}")
     print("[OK] 打包完成")
     print(f"[OK] 输出目录: {root / 'dist'}")
     print(f"[OK] 可执行文件: {exe_path}")
@@ -159,8 +179,11 @@ def main() -> int:
     parser.add_argument("--product-name", default=APP_NAME, help="Windows 文件属性中的产品名称")
     parser.add_argument("--file-description", default=APP_NAME, help="Windows 文件属性中的文件说明")
     parser.add_argument("--zip", action="store_true", help="生成附带许可文件的发行 ZIP")
+    parser.add_argument("--release", action="store_true", help="生成带架构和安装模式的 GitHub Release ZIP")
+    parser.add_argument("--update-repo", default=UPDATE_REPO, help="公开 GitHub 更新源 OWNER/REPO")
     args = parser.parse_args()
-    return build(args.onefile, args.console, args.product_name, args.file_description, args.name, args.zip)
+    return build(args.onefile, args.console, args.product_name, args.file_description, args.name, args.zip,
+                 release=args.release, repo=args.update_repo)
 
 
 if __name__ == "__main__":

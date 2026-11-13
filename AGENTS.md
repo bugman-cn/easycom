@@ -59,4 +59,4 @@ python.exe scripts\build_exe.py
 
 - `scripts/build_exe.py` 会打包 `resources/` 和 `icon/`；新增运行时资源应放在这两个目录下，或同步更新脚本中的 `--add-data` 参数。
 - Windows 默认使用 `onedir` 打包；只有需要单文件发行版时才运行 `python scripts\build_exe.py --onefile`。
-- `scripts/release.bat` 和 `scripts/release.ps1` 读取 `APP_VERSION`，生成默认名称为 `easycom-v<version>` 的 `onedir` 发行版。
+- `scripts/release.bat` 和 `scripts/release.ps1` 读取 `APP_VERSION`，在 x64 环境下默认生成 `easycom-v<version>-win64.zip`，程序名固定为 `easycom.exe`。
